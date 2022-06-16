@@ -23,7 +23,7 @@
   "homepage": "https://github.com/PrinceMerluza/embeddable-framework-linter#readme",
   "dependencies": {
     "@types/node": "^18.0.0",
-    "chalk": "^5.0.1",
+    "chalk": "^4.1.0",
     "ts-morph": "^15.1.0"
   },
   "bin": {
