@@ -2,14 +2,10 @@
 
 import * as fs from 'fs';
 import { Project, ts } from 'ts-morph';
-import * as utils from './utils';
+import { LinterError } from './types';
+import testCases from './test-cases';
 import chalk from 'chalk';
-
-interface LinterError {
-  message: string;
-  line: number;
-  content: string;
-}
+import test from 'node:test';
 
 const errorList = new Array<LinterError>();
 
@@ -23,26 +19,20 @@ const filePath = process.argv[2];
 console.log('Checking...\n');
 
 // Parse the AST of the js file
-const project = new Project({ useInMemoryFileSystem: true });
+const project = new Project({ useInMemoryFileSystem: true  });
 const fileContents = fs.readFileSync(filePath, { encoding: 'utf-8', });
 const sourceFile = project.createSourceFile('file.js', fileContents);
 
-// CASE: Domain should not contain wildcard
-sourceFile.getDescendantsOfKind(ts.SyntaxKind.CallExpression).forEach(statement => {
-  if (statement.getText().startsWith('window.parent.postMessage')){
-    const domain = statement.getArguments()[1].getText();
-    if (domain.includes('*')){
-
-      // Add failed case to error list
-      errorList.push({
-        message: 'Domain should not contain wildcard *',
-        line: utils.getLineFromPosition(fileContents, statement.getStart()),
-        content: statement.getText(),
-      });
-    }
-  }
+// Run each test case
+testCases.forEach(testCase => {
+  const error = testCase(fileContents, sourceFile);
+  error.forEach(err => {
+    errorList.push(err);
+  });
 });
 
+
+// Final output
 if(errorList.length > 0){
   console.log('Found ' + errorList.length + ' errors');
   errorList.forEach(error => {

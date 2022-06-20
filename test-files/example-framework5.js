@@ -23,7 +23,7 @@ function setupFramework(parentSettings){
     window.Framework = {
         config: {
             name:parentSettings.name,
-            settings: parentSettings.settings,
+            // settings: parentSettings.settings,
             clientIds: parentSettings.clientIds,            
             customInteractionAttributes: parentSettings.customInteractionAttributes,
         },
@@ -44,7 +44,7 @@ function setupFramework(parentSettings){
                 {
                     type: 'Notification', 
                     callback: function (category, data) {
-                        window.parent.postMessage(JSON.stringify({type:"notificationSubscription", data:{category:category, data:data}}) , parentDomain);
+                        window.parent.postMessage(JSON.stringify({type:"notificationSubscription", data:{category:category, data:data}}) , "*");
                     }  
                 }
             ]);
