@@ -93,7 +93,6 @@ export default [
   // CASE: config.customInteractionAttributes should be set
   (fileContents: string, sourceFile: SourceFile): LinterError[] => {
     const error: LinterError[] = [];
-    const requiredConfigProps = ['name', 'settings', 'clientIds', 'customInteractionAttributes'];
 
     sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
       const key = statement.getChildAtIndex(0);

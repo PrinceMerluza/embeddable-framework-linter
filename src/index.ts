@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 import * as fs from 'fs';
-import { Project, ts } from 'ts-morph';
+import { Project } from 'ts-morph';
 import { LinterError } from './types';
 import testCases from './test-cases';
 import chalk from 'chalk';
-import test from 'node:test';
 
 const errorList = new Array<LinterError>();
 
