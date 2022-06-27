@@ -1,6 +1,6 @@
 {
   "name": "embeddable-framework-linter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A CLI tool to validate the framework.js for use in Genesys Cloud Embeddable Framework",
   "main": "app.js",
   "files": [
