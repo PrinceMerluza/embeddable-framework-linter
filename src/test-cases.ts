@@ -218,9 +218,12 @@ export default [
         if (!crmSearchEnabled) return null;
       
         // Check if method is defined
+        let methodFound = false;
         sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
           const key = statement.getChildAtIndex(0);
           const value = statement.getChildAtIndex(2);
+          if (key.getText() === 'contactSearch') methodFound = true;
+
           // If config is not an object, pass as it may be set to variable.
           if (key.getText() === 'contactSearch' && value.getKind() !== ts.SyntaxKind.FunctionExpression){
             return null; // method may be assigned to variable
@@ -251,12 +254,98 @@ export default [
             }
           }
         });
+
+        if(!methodFound){
+          error.push({
+            message: `'frameworkContacts' is configured as searchTarget but contactSearch method is not defined`,
+            line: utils.getLineFromPosition(fileContents, searchTargetsProp.getStart()),
+            content: searchTargetsProp.getText(),
+          });
+        }
       }
     });
 
     return error;
   },
 
+  // CASE: processCallLog
+  (fileContents: string, sourceFile: SourceFile): LinterError[] => {
+    const error: LinterError[] = [];
+
+    sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
+      const key = statement.getChildAtIndex(0);
+      const value = statement.getChildAtIndex(2);
+      // If config is not an object, pass as it may be set to variable.
+      if (key.getText() === 'config'){
+        if(value.getKind() !== ts.SyntaxKind.ObjectLiteralExpression){
+          return null
+        }
+
+        // Get the settings property
+        const settingsProp = value.getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).find(prop => {
+          return prop.getChildAtIndex(0).getText() === 'settings';
+        });
+        if(!settingsProp) return null;
+        // Get the settings.searchTargets property
+        const enableCallLogsProp = settingsProp.getChildAtIndex(2).getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).find(prop => {
+          return prop.getChildAtIndex(0).getText() === 'enableCallLogs';
+        });
+        if(!enableCallLogsProp) return null;
+
+        // Check if call log is enabled
+        const isCallLogEnabled = enableCallLogsProp.getChildAtIndexIfKind(2, ts.SyntaxKind.TrueKeyword);
+        if(!isCallLogEnabled) return null;
+      
+        // Check if method is defined
+        let methodFound = false;
+        sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
+          const key = statement.getChildAtIndex(0);
+          const value = statement.getChildAtIndex(2);
+          if (key.getText() === 'processCallLog') methodFound = true;
+
+          // If config is not an object, pass as it may be set to variable.
+          if (key.getText() === 'processCallLog' && value.getKind() !== ts.SyntaxKind.FunctionExpression){
+            return null; // method may be assigned to variable
+          }
+
+          // Error
+          if (key.getText() === 'processCallLog'){
+            const block = value.getChildrenOfKind(ts.SyntaxKind.Block)[0];
+            // If function is empty
+            if(block.getStatements().length <= 1){
+              error.push({
+                message: `enableCallLogs is true but processCallLogs method is empty or contains default implementation`,
+                line: utils.getLineFromPosition(fileContents, value.getStart()),
+                content: value.getText(),
+              });
+
+              return;
+            }
+
+            // If onsuccess is not used
+            // NOTE: Lazy checking
+            if(!block.getText().includes('onSuccess')){
+              error.push({
+                message: 'onSuccess should be used in enableCallLogs method',
+                line: utils.getLineFromPosition(fileContents, value.getStart()),
+                content: value.getText(),
+              });
+            }
+          }
+        });
+
+        if(!methodFound){
+          error.push({
+            message: `enableCallLogs is true but processCallLogs method is not defined`,
+            line: utils.getLineFromPosition(fileContents, enableCallLogsProp.getStart()),
+            content: enableCallLogsProp.getText(),
+          });
+        }
+      }
+    });
+
+    return error;
+  },
 ]; 
 
  

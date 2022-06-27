@@ -80,9 +80,6 @@ window.Framework = {
     },
     openCallLog: function (callLog) {
     },
-    contactSearch: function (searchValue, onSuccess, onFailure) {
-
-    }
 };
 
 window.PureCloud = {
