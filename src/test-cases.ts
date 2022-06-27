@@ -165,9 +165,9 @@ export default [
 
         // Check if all regions exist
         const idsConfigured = objChildren[0].getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).map(prop => {  
-          return prop.getChildAtIndex(0).getText().replaceAll('"', '');
+          return utils.cleanKeyText(prop.getChildAtIndex(0).getText());
         });
-        console.log(idsConfigured);
+
         gcRegions.forEach(region => {
           if(!idsConfigured.includes(region)){
             error.push({
@@ -182,10 +182,81 @@ export default [
 
     return error;
   },
-];
 
+  // CASE: contactSearch
+  (fileContents: string, sourceFile: SourceFile): LinterError[] => {
+    const error: LinterError[] = [];
 
-  
-  
-  
+    sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
+      const key = statement.getChildAtIndex(0);
+      const value = statement.getChildAtIndex(2);
+      // If config is not an object, pass as it may be set to variable.
+      if (key.getText() === 'config'){
+        if(value.getKind() !== ts.SyntaxKind.ObjectLiteralExpression){
+          return null
+        }
+
+        // Get the settings property
+        const settingsProp = value.getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).find(prop => {
+          return prop.getChildAtIndex(0).getText() === 'settings';
+        });
+        if(!settingsProp) return null;
+        // Get the settings.searchTargets property
+        const searchTargetsProp = settingsProp.getChildAtIndex(2).getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).find(prop => {
+          return prop.getChildAtIndex(0).getText() === 'searchTargets';
+        });
+        if(!searchTargetsProp) return null;
+
+        const searchTargets = searchTargetsProp.getChildAtIndexIfKind(2, ts.SyntaxKind.ArrayLiteralExpression);
+        if(!searchTargets) return null; // search targets may be assigned to variable
+
+        // Check if crm contacts search is enabled
+        let crmSearchEnabled = false;
+        searchTargets.getDescendantsOfKind(ts.SyntaxKind.StringLiteral).forEach(target => {
+          if(utils.cleanKeyText(target.getText()) === 'frameworkContacts') crmSearchEnabled = true;
+        });
+        if (!crmSearchEnabled) return null;
+      
+        // Check if method is defined
+        sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
+          const key = statement.getChildAtIndex(0);
+          const value = statement.getChildAtIndex(2);
+          // If config is not an object, pass as it may be set to variable.
+          if (key.getText() === 'contactSearch' && value.getKind() !== ts.SyntaxKind.FunctionExpression){
+            return null; // method may be assigned to variable
+          }
+
+          // Error
+          if (key.getText() === 'contactSearch'){
+            const block = value.getChildrenOfKind(ts.SyntaxKind.Block)[0];
+            // If function is empty
+            if(block.getStatements().length === 0){
+              error.push({
+                message: `'frameworkContacts' is configured as searchTarget but contactSearch method is empty`,
+                line: utils.getLineFromPosition(fileContents, value.getStart()),
+                content: value.getText(),
+              });
+
+              return;
+            }
+
+            // If onsuccess is not used
+            // NOTE: Lazy checking
+            if(!block.getText().includes('onSuccess')){
+              error.push({
+                message: 'onSuccess should be used in contactSearch method',
+                line: utils.getLineFromPosition(fileContents, value.getStart()),
+                content: value.getText(),
+              });
+            }
+          }
+        });
+      }
+    });
+
+    return error;
+  },
+
+]; 
+
  
