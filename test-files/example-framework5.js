@@ -25,7 +25,7 @@ function setupFramework(parentSettings){
             name:parentSettings.name,
             // settings: parentSettings.settings,
             clientIds: parentSettings.clientIds,            
-            customInteractionAttributes: parentSettings.customInteractionAttributes,
+            customInteractionAttributes: [],
         },
         initialSetup: function () {
             window.PureCloud.subscribe([

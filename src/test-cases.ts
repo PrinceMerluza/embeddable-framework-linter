@@ -7,6 +7,19 @@ import * as utils from './utils';
 import { SourceFile, ts } from 'ts-morph';
 import { LinterError } from './types';
 
+const gcRegions = [
+  "cac1.pure.cloud",
+  "mypurecloud.com",
+  "usw2.pure.cloud",
+  "aps1.pure.cloud",
+  "apne2.pure.cloud",
+  "mypurecloud.com.au",
+  "mypurecloud.jp",
+  "mypurecloud.ie",
+  "mypurecloud.de",
+  "euw2.pure.cloud"
+]
+
 export default [
   // CASE: Domain should not contain wildcard
   (fileContents: string, sourceFile: SourceFile): LinterError[]  => {
@@ -121,6 +134,49 @@ export default [
             content: attrbProp.getText(),
           });
         }
+      }
+    });
+
+    return error;
+  },
+
+  // CASE: Client IDs for all regions should be set
+  (fileContents: string, sourceFile: SourceFile): LinterError[] => {
+    const error: LinterError[] = [];
+
+    sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAssignment).forEach(statement => {
+      const key = statement.getChildAtIndex(0);
+      const value = statement.getChildAtIndex(2);
+      // If config is not an object, pass as it may be set to variable.
+      if (key.getText() === 'config'){
+        if(value.getKind() !== ts.SyntaxKind.ObjectLiteralExpression){
+          return null
+        }
+
+        // Get the clientIds property
+        const clientIdsProp = value.getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).find(prop => {
+          return prop.getChildAtIndex(0).getText() === 'clientIds';
+        });
+        if(!clientIdsProp) return null;
+
+        // If not obj, ignore as it may be another variable.
+        const objChildren = clientIdsProp.getChildrenOfKind(ts.SyntaxKind.ObjectLiteralExpression);
+        if(objChildren.length === 0) return null;
+
+        // Check if all regions exist
+        const idsConfigured = objChildren[0].getChildrenOfKind(ts.SyntaxKind.PropertyAssignment).map(prop => {  
+          return prop.getChildAtIndex(0).getText().replaceAll('"', '');
+        });
+        console.log(idsConfigured);
+        gcRegions.forEach(region => {
+          if(!idsConfigured.includes(region)){
+            error.push({
+              message: `Missing client id for ${region}`,
+              line: utils.getLineFromPosition(fileContents, clientIdsProp.getStart()),
+              content: clientIdsProp.getText(),
+            });
+          }
+        });
       }
     });
 
