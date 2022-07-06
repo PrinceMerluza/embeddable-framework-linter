@@ -8,6 +8,7 @@ if(!window.console){
     };
 }
 
+
 var url = window.location.search;
 var segments = url.replace('?', '').split('&');
 for(var i = 0; i < segments.length; i++){
