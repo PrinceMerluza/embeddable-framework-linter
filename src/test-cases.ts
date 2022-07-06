@@ -346,6 +346,26 @@ export default [
 
     return error;
   },
+
+  // CASE: Check if embedding or downloading external script.
+  // Simply checks for *.js in any string literal. This may raise
+  // some false negatives, but person will be informed.
+  (fileContents: string, sourceFile: SourceFile): LinterError[] => {
+    const error: LinterError[] = [];
+
+    sourceFile.getDescendantsOfKind(ts.SyntaxKind.StringLiteral).forEach(statement => {
+      const isSuspicious = /.*\.js.*/.test(statement.getText())
+      if(isSuspicious){
+        error.push({
+          message: 'You might be trying to import external scripts. This is not allowed for security reasons. NOTE: This case may be a false negative, ignore if so.',
+          line: utils.getLineFromPosition(fileContents, statement.getStart()),
+          content: statement.getText(),
+        });
+      }
+    });
+
+    return error;
+  },
 ]; 
 
  
